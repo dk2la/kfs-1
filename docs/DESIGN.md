@@ -18,9 +18,9 @@ The subject requires:
 
 ## Scope
 
-**In this delivery:** the mandatory part only.
+**First delivery:** the mandatory part only. It was merged into `master` on 2026-11-17.
 
-**Deferred:** the five bonuses (scroll and cursor, colours, `printk`, keyboard input, multiple screens). Whether to do them is decided after the mandatory part is merged, and they would arrive as a separate pull request. The subject only grades bonuses when the mandatory part is perfect.
+**Second delivery:** the five bonuses (scroll and cursor, colours, `printk`, keyboard input, multiple screens), as a separate pull request. They are described under [Bonuses](#bonuses). The subject only grades bonuses when the mandatory part is perfect.
 
 The code is laid out so that later KFS projects (memory, interrupts, processes) can build on it without a rewrite.
 
@@ -55,8 +55,8 @@ The subject also lists `-fno-exception` and `-fno-rtti`; those apply to C++ only
 2. GRUB reads `grub.cfg`, loads `kernel.bin`, and finds the Multiboot header in its first 8 KiB.
 3. GRUB places the kernel at 1 MiB, switches to 32-bit protected mode, and jumps to `_start`.
 4. `_start` (assembly) sets the stack pointer to our own stack and calls `kmain`.
-5. `kmain` (C) clears the screen and writes `42` through the screen module.
-6. `kmain` returns; `_start` disables interrupts and halts in a loop.
+5. `kmain` (C) clears the screen and writes `42` through the screen module, then a colour sample and `printk` lines.
+6. `kmain` loops reading the keyboard. Should it ever return, `_start` disables interrupts and halts in a loop.
 
 ## Layout
 
@@ -66,13 +66,19 @@ linker.ld            places the Multiboot header first, kernel at 1 MiB
 grub.cfg             one menu entry: multiboot /boot/kernel.bin
 src/
   boot.s             Multiboot header, stack, _start
-  kernel.c           kmain
-  vga.c              screen: clear, put character, write string
+  kernel.c           kmain: boot messages, then the keyboard loop
+  vga.c              screen: write, colours, scrolling, cursor, virtual screens
+  keyboard.c         PS/2 keyboard, read by polling
 lib/
   string.c           strlen, strcmp, memset, memcpy
+  printk.c           formatted print
 include/
   types.h            fixed-width integer types, size_t
+  io.h               inb, outb
+  stdarg.h           variadic arguments, from compiler builtins
   vga.h
+  keyboard.h
+  printk.h
   string.h
 docs/
   DESIGN.md          this document
@@ -80,6 +86,22 @@ README.md            dependencies, build, run, boot walkthrough
 ```
 
 Build output goes to `build/` and is ignored by git.
+
+## Bonuses
+
+| Bonus | Decision | Reason |
+|---|---|---|
+| Scrolling | Past the last row, every row moves up by one and the last is blanked | The simplest behaviour that keeps the newest output visible |
+| Cursor | The hardware VGA cursor, moved through the CRT controller ports `0x3D4`/`0x3D5` after every write | No drawing code needed; the card blinks it for us |
+| Colours | `vga_set_color(fg, bg)` with the 16 VGA colours; each screen keeps its own | Matches the attribute byte of a text cell exactly |
+| `printk` | `%c %s %d %u %x %p %%`, writing through the screen module | Enough to print values while debugging later KFS projects |
+| Variadic arguments | Our own `stdarg.h` over `__builtin_va_*` | No host header may be used |
+| Keyboard | PS/2, scancode set 1, US layout, polled on ports `0x60`/`0x64` | Interrupts need an IDT, which belongs to a later KFS project |
+| Screens | Four virtual screens, switched with `F1` to `F4` | Plain function keys are not intercepted by the host, unlike `Alt+F4` |
+
+Each virtual screen has a backing copy of its 80×25 cells, its write position and its colours. Output always goes to the active screen, and is written to both its backing copy and VGA memory. Switching copies the new screen's backing copy to VGA memory and moves the cursor.
+
+Polling means the kernel spins in a loop while waiting for a key, so the emulated CPU stays busy. That goes away when interrupts arrive.
 
 ## Build and run
 
@@ -124,8 +146,9 @@ Before the pull request is opened, a cloud Linux agent working on the pushed bra
 
 Fallback: if the cloud sandbox cannot install the packages, the same checks run in a Linux container through the Docker already present on the owner's Mac. The owner is told before the fallback is used.
 
+The bonuses are verified the same way: keys are sent through the QEMU monitor (`sendkey`), the VGA text buffer is read back with `pmemsave`, and the cursor position is read from the CRT controller.
+
 ## Open items
 
-- Repository creation by the owner (blocks all implementation work).
-- Whether the cloud sandbox allows installing QEMU, GRUB and NASM (checked first, once the branch is pushed).
-- Whether to do the bonuses (decided after the mandatory part is merged).
+- The cloud sandbox was not available, so verification runs in the Docker fallback.
+- A built ISO still has to be added to the 42 turn-in repository before defence.
