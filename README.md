@@ -39,7 +39,7 @@ To open a graphical window instead: `qemu-system-i386 -cdrom build/kfs.iso`.
 ## How it boots
 
 1. The firmware starts GRUB from the ISO.
-2. GRUB reads `grub.cfg` and loads `/boot/kernel.bin`. It recognises the kernel by the Multiboot 1 header (magic `0x1BADB002`) that `linker.ld` places at the very start of the binary.
+2. GRUB reads `grub.cfg` and loads `/boot/kernel.bin`. It recognises the kernel by the Multiboot 1 header (magic `0x1BADB002`) that `linker.ld` places at the start of the code, within the first 8 KiB of the file where GRUB looks for it.
 3. GRUB puts the kernel at 1 MiB, switches the CPU to 32-bit protected mode and jumps to `_start` in `src/boot.s`.
 4. `_start` points the stack pointer at the kernel's own 16 KiB stack and calls `kmain`.
 5. `kmain` in `src/kernel.c` clears the screen and writes `42` through the screen module.

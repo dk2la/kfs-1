@@ -101,7 +101,7 @@ A default `grub-mkrescue` ISO can approach or exceed the 10 MB limit. The ISO is
 
 ## Turn-in
 
-- The ISO is built by `make` and is **not** committed to the GitHub repository (`*.iso` is in `.gitignore`).
+- The ISO is built by `make iso` and is **not** committed to the GitHub repository (`*.iso` is in `.gitignore`).
 - The subject asks for a virtual image to be turned in. If a separate 42 turn-in repository exists, the owner adds one built ISO there before defence.
 - The subject PDF is ignored by git.
 

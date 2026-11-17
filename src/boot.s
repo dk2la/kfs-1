@@ -6,7 +6,7 @@
 
 ; Multiboot 1 header. GRUB scans the first 8 KiB of the file for it.
 MB_MAGIC	equ 0x1BADB002
-MB_FLAGS	equ 0x00000003		; align modules on 4 KiB, provide memory map
+MB_FLAGS	equ 0x00000003		; align modules on 4 KiB, provide memory info
 MB_CHECKSUM	equ -(MB_MAGIC + MB_FLAGS)
 
 section .multiboot align=4
@@ -18,7 +18,7 @@ section .multiboot align=4
 STACK_SIZE	equ 16384
 
 section .bss
-align 16
+alignb 16
 stack_bottom:
 	resb STACK_SIZE
 stack_top:
@@ -30,6 +30,7 @@ extern kmain
 
 _start:
 	mov esp, stack_top
+	cld				; C code expects the direction flag clear
 	call kmain
 
 	; kmain returned: there is nothing left to run. Stop here for good.
