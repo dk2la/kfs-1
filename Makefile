@@ -25,9 +25,10 @@ GRUB_MODULES	= multiboot normal iso9660 biosdisk
 GRUB_FLAGS	= --install-modules="$(GRUB_MODULES)" --locales="" --themes="" \
 		  --fonts=""
 
-C_SRCS		= src/kernel.c src/vga.c lib/string.c
+C_SRCS		= src/kernel.c src/vga.c src/keyboard.c lib/string.c lib/printk.c
 ASM_SRCS	= src/boot.s
-HEADERS		= include/types.h include/vga.h include/string.h
+HEADERS		= include/types.h include/vga.h include/string.h include/io.h \
+		  include/stdarg.h include/printk.h include/keyboard.h
 
 OBJS		= $(ASM_SRCS:%.s=$(BUILD)/%.o) $(C_SRCS:%.c=$(BUILD)/%.o)
 
