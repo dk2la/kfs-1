@@ -40,8 +40,13 @@ static const char keymap_shift[] = {
 _Static_assert(sizeof(keymap) == sizeof(keymap_shift),
 	       "both keymaps must cover the same scancodes");
 
+/* One bit per Shift key, so releasing one does not drop the other. */
+#define SHIFT_LEFT	0x1
+#define SHIFT_RIGHT	0x2
+
 static int shift_held;
 static int caps_lock;
+static int caps_held;
 static int extended;
 
 static int is_letter(char c)
@@ -51,7 +56,7 @@ static int is_letter(char c)
 
 static int translate(uint8_t scancode)
 {
-	int shifted = shift_held;
+	int shifted = shift_held != 0;
 
 	if (scancode >= SC_F1 && scancode <= SC_F4)
 		return KEY_F1 + (scancode - SC_F1);
@@ -84,17 +89,29 @@ int keyboard_poll(void)
 		return KEY_NONE;
 	}
 
-	if (scancode == SC_LSHIFT || scancode == SC_RSHIFT) {
-		shift_held = 1;
+	switch (scancode) {
+	case SC_LSHIFT:
+		shift_held |= SHIFT_LEFT;
 		return KEY_NONE;
-	}
-	if (scancode == (SC_LSHIFT | SC_RELEASE) ||
-	    scancode == (SC_RSHIFT | SC_RELEASE)) {
-		shift_held = 0;
+	case SC_RSHIFT:
+		shift_held |= SHIFT_RIGHT;
+		return KEY_NONE;
+	case SC_LSHIFT | SC_RELEASE:
+		shift_held &= ~SHIFT_LEFT;
+		return KEY_NONE;
+	case SC_RSHIFT | SC_RELEASE:
+		shift_held &= ~SHIFT_RIGHT;
 		return KEY_NONE;
 	}
 	if (scancode == SC_CAPSLOCK) {
-		caps_lock = !caps_lock;
+		/* A held key repeats its press: toggle once per press. */
+		if (!caps_held)
+			caps_lock = !caps_lock;
+		caps_held = 1;
+		return KEY_NONE;
+	}
+	if (scancode == (SC_CAPSLOCK | SC_RELEASE)) {
+		caps_held = 0;
 		return KEY_NONE;
 	}
 	if (scancode & SC_RELEASE)

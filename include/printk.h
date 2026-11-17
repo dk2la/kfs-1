@@ -13,6 +13,8 @@
  *   %p  pointer, as 0x followed by eight hexadecimal digits
  *   %%  a literal percent sign
  *
+ * Widths, flags and length modifiers (%5d, %08x, %ld) are not supported.
+ *
  * Returns the number of characters written.
  */
 int	printk(const char *fmt, ...) __attribute__((format(printf, 1, 2)));

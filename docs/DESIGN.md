@@ -94,6 +94,8 @@ Build output goes to `build/` and is ignored by git.
 | Scrolling | Past the last row, every row moves up by one and the last is blanked | The simplest behaviour that keeps the newest output visible |
 | Cursor | The hardware VGA cursor, moved through the CRT controller ports `0x3D4`/`0x3D5` after every write | No drawing code needed; the card blinks it for us |
 | Colours | `vga_set_color(fg, bg)` with the 16 VGA colours; each screen keeps its own | Matches the attribute byte of a text cell exactly |
+| Blinking | Turned off in the VGA attribute controller at start-up | The blink bit otherwise takes the top background bit, leaving 8 backgrounds |
+| Backspace | Erases typed text only, and returns to the end of the previous line across a newline | Kernel output such as `42` cannot be erased by accident |
 | `printk` | `%c %s %d %u %x %p %%`, writing through the screen module | Enough to print values while debugging later KFS projects |
 | Variadic arguments | Our own `stdarg.h` over `__builtin_va_*` | No host header may be used |
 | Keyboard | PS/2, scancode set 1, US layout, polled on ports `0x60`/`0x64` | Interrupts need an IDT, which belongs to a later KFS project |

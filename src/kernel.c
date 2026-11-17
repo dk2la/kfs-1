@@ -15,6 +15,14 @@ static void show_colours(void)
 			      colour == VGA_BLACK ? VGA_LIGHT_GREY : VGA_BLACK);
 		printk("%x", colour);
 	}
+	/* The same digits again, as background colours. */
+	vga_set_color(VGA_LIGHT_GREY, VGA_BLACK);
+	vga_putchar(' ');
+	for (colour = VGA_BLACK; colour <= VGA_WHITE; colour++) {
+		vga_set_color(colour < VGA_DARK_GREY ? VGA_WHITE : VGA_BLACK,
+			      colour);
+		printk("%x", colour);
+	}
 	vga_set_color(VGA_LIGHT_GREY, VGA_BLACK);
 	vga_putchar('\n');
 }
@@ -28,6 +36,9 @@ static void show_printk(void)
 	       (void *)0xb8000);
 	printk("printk: %s %d\n", missing, 0);
 }
+
+_Static_assert(VGA_SCREENS <= KEY_F4 - KEY_F1 + 1,
+	       "every screen needs a function key to reach it");
 
 /* Give every other screen its own colours and a title. */
 static void prepare_screens(void)
@@ -46,9 +57,28 @@ static void prepare_screens(void)
 	vga_switch_screen(0);
 }
 
+/*
+ * Print a typed key on the active screen. Backspace only erases what was
+ * typed on that screen, never the text the kernel printed there.
+ */
+static void echo_key(size_t screen, char c)
+{
+	static size_t typed[VGA_SCREENS];
+
+	if (c == '\b') {
+		if (typed[screen] == 0)
+			return;
+		typed[screen]--;
+	} else {
+		typed[screen]++;
+	}
+	vga_putchar(c);
+}
+
 /* Called from _start (src/boot.s) once the stack is set up. */
 void kmain(void)
 {
+	size_t screen = 0;
 	int key;
 
 	vga_init();
@@ -61,9 +91,11 @@ void kmain(void)
 
 	for (;;) {
 		key = keyboard_read();
-		if (key >= KEY_F1 && key <= KEY_F4)
-			vga_switch_screen((size_t)(key - KEY_F1));
-		else
-			vga_putchar((char)key);
+		if (key >= KEY_F1 && key < KEY_F1 + VGA_SCREENS) {
+			screen = (size_t)(key - KEY_F1);
+			vga_switch_screen(screen);
+		} else {
+			echo_key(screen, (char)key);
+		}
 	}
 }

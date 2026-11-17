@@ -88,11 +88,13 @@ The kernel is linked with `ld -m elf_i386 -T linker.ld -nostdlib`, so no host li
 
 ### Scrolling and cursor
 
-When output passes the last row, the screen scrolls up by one line. The blinking hardware cursor always sits where the next character will go. It is moved by writing the position to the VGA CRT controller (ports `0x3D4` and `0x3D5`).
+When output passes the last row, the screen scrolls up by one line. After a line that ends with a newline, the bottom row is the empty line holding the cursor, as in a terminal. The blinking hardware cursor always sits where the next character will go. It is moved by writing the position to the VGA CRT controller (ports `0x3D4` and `0x3D5`).
 
 ### Colours
 
-`vga_set_color(fg, bg)` picks the foreground and background from the 16 VGA colours. `vga_clear()` fills the screen with the current background. The second line shown at boot prints one digit in each colour.
+`vga_set_color(fg, bg)` picks the foreground and background from the 16 VGA colours. `vga_clear()` fills the screen with the current background. The second line shown at boot prints one digit in each foreground colour, then one in each background colour.
+
+By default the VGA card uses the top bit of the colour byte to make text blink, which leaves only 8 backgrounds. The kernel turns blinking off so that all 16 are available.
 
 ### printk
 
@@ -100,7 +102,7 @@ When output passes the last row, the screen scrolls up by one line. The blinking
 
 ### Keyboard
 
-Whatever is typed appears on the screen. The layout is US QWERTY. Shift and Caps Lock work, Enter starts a new line and Backspace erases the previous character.
+Whatever is typed appears on the screen. The layout is US QWERTY. Shift and Caps Lock work, Enter starts a new line and Backspace erases the previous character. Backspace only erases what was typed: the text printed by the kernel, including `42`, stays.
 
 The keyboard is read by polling the PS/2 controller (ports `0x60` and `0x64`) in a loop. Interrupts are not used, because the interrupt table belongs to a later KFS project.
 
